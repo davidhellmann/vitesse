@@ -1,6 +1,11 @@
 <script setup lang="ts">
+import { useExampleQuery } from '~/graphql/example.query'
+const { result, loading, error } = useExampleQuery()
+
 const user = useUserStore()
 const name = $ref(user.savedName)
+
+console.log(import.meta.env)
 
 const router = useRouter()
 const go = () => {
@@ -13,6 +18,20 @@ const { t } = useI18n()
 
 <template>
   <div>
+    <div v-if="loading">
+      Loading. . .
+    </div>
+    <div v-else-if="error">
+      Error: {{ error.message }}
+    </div>
+    <div v-else-if="result">
+      <ul>
+        <template v-for="entry in result?.entries" :key="entry.id">
+          <li>Id: {{ entry.id }} | Title: {{ entry.title }} | Uri: {{ entry.uri }} | Url: {{ entry.url }}</li>
+        </template>
+      </ul>
+    </div>
+
     <div text-4xl>
       <div i-carbon-campsite inline-block />
     </div>

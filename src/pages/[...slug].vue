@@ -4,11 +4,10 @@ const { t } = useI18n()
 
 <template>
   <div>
-    {{ t('not-found') }}
+    <pre>
+      <code>
+        Route: {{ $route.params }}
+      </code>
+    </pre>
   </div>
 </template>
-
-<route lang="yaml">
-meta:
-  layout: 404
-</route>

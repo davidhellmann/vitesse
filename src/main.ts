@@ -1,4 +1,5 @@
 import { ViteSSG } from 'vite-ssg'
+import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
 import App from './App.vue'
 import generatedRoutes from '~pages'
@@ -6,6 +7,7 @@ import generatedRoutes from '~pages'
 import '@unocss/reset/tailwind.css'
 import './styles/main.css'
 import 'uno.css'
+import axios from 'axios'
 
 const routes = setupLayouts(generatedRoutes)
 
@@ -13,8 +15,57 @@ const routes = setupLayouts(generatedRoutes)
 export const createApp = ViteSSG(
   App,
   { routes, base: import.meta.env.BASE_URL },
-  (ctx) => {
+  async (ctx) => {
     // install all modules under `modules/`
     Object.values(import.meta.globEager('./modules/*.ts')).forEach(i => i.install?.(ctx))
+
+    const { app, url, router, isClient, initialState, initialRoute } = ctx
+
+    const pinia = createPinia()
+    app.use(pinia)
+
+    if (import.meta.env.SSR)
+      initialState.pinia = pinia.state.value
+
+    else
+      pinia.state.value = initialState.pinia || {}
   },
 )
+
+export async function includedRoutes(paths: any, routes: any) {
+  const { data: { data: { entries } } } = await axios({
+    url: `${import.meta.env.VITE_API_BASE_URL}/api` || '',
+    headers: {
+      Authorization: `Bearer ${import.meta.env.VITE_GRAPHQL_TOKEN}`,
+    },
+    method: 'post',
+    data: {
+      query: `
+          {
+            entries(section: ["pages", "news"], site: ["default"]) {
+              id
+              slug
+              uri
+              url
+              sectionHandle
+              typeHandle
+            }
+          }
+          `,
+    },
+  })
+
+  const pages = entries
+    .filter((item: any) => item.sectionHandle === 'pages')
+    .map((item: any) => `${item.uri}`)
+
+  const staticRoutes = routes.map((item: any) => `${item.path}`)
+  console.log(pages)
+  console.log(staticRoutes)
+
+  return [
+    // ...staticPaths,
+    ...staticRoutes,
+    ...pages,
+  ]
+}
